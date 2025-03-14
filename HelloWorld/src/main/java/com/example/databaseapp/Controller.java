@@ -15,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -39,11 +40,11 @@ public class Controller {
     @FXML private TableColumn<Person, String> birthdateColumn;
     @FXML private TableColumn<Person, String> emailColumn;
 
-    private FileDatabase database = new FileDatabase();
+    private FileDatabasePostgres database = new FileDatabasePostgres();
     private String backupFilePath;
     private ObservableList<Person> data = FXCollections.observableArrayList();
 
-    public Controller() throws IOException {
+    public Controller() throws IOException, SQLException, ClassNotFoundException {
     }
 
     @FXML
@@ -123,46 +124,32 @@ public class Controller {
 
     @FXML
     private void onSelectDatabaseClick(ActionEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-        File selectedFile = fileChooser.showOpenDialog(dataTable.getScene().getWindow());
-        if (selectedFile != null) {
-            // Создаем дублирующий файл
-            backupFilePath = selectedFile.getAbsolutePath().replace(".csv", "_backup.csv");
-            File backupFile = new File(backupFilePath);
-            try {
-                // Копируем оригинальный файл в дублирующий, а затем грузим данные с основной базы
-                Files.copy(selectedFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                database = new FileDatabase(selectedFile.getAbsolutePath());
-                updateUIState(true); // Активируем элементы интерфейса
-                loadData(); // Загрузить данные
-                updateAppTitle();
-            } catch (IOException e) {
-                e.printStackTrace();
-                // Обработка ошибок при копировании файла
-            }
-        }
+//        FileChooser fileChooser = new FileChooser();
+//        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+//        File selectedFile = fileChooser.showOpenDialog(dataTable.getScene().getWindow());
+//        if (selectedFile != null) {
+//            // Создаем дублирующий файл
+//            backupFilePath = selectedFile.getAbsolutePath().replace(".csv", "_backup.csv");
+//            File backupFile = new File(backupFilePath);
+//            try {
+//                // Копируем оригинальный файл в дублирующий, а затем грузим данные с основной базы
+//                Files.copy(selectedFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+//                database = new FileDatabase(selectedFile.getAbsolutePath());
+//                updateUIState(true); // Активируем элементы интерфейса
+//                loadData(); // Загрузить данные
+//                updateAppTitle();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                // Обработка ошибок при копировании файла
+//            }
+//        }
     }
     @FXML
-    private void onCreateDatabaseClick(ActionEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-        File newFile = fileChooser.showSaveDialog(dataTable.getScene().getWindow());
-        if (newFile != null) {
-            try {
-                // Создаем пустой файл
-                newFile.createNewFile();
-                database = new FileDatabase(newFile.getAbsolutePath());
-                backupFilePath = newFile.getAbsolutePath().replace(".csv", "_backup.csv"); // Устанавливаем путь к резервной копии
-                updateUIState(true); // Активируем элементы интерфейса
-                loadData(); // Загружаем данные (пока пустые)
-                updateAppTitle();
-            } catch (IOException e) {
-                e.printStackTrace();
-                // Обработка ошибок при создании файла
-            }
-        }
+    private void onCreateDatabaseClick(ActionEvent event) throws SQLException, IOException, ClassNotFoundException {
+        database = new FileDatabasePostgres();
     }
+
+
     @FXML
     private void onResetButtonClick(ActionEvent event) {
         if (backupFilePath != null) {

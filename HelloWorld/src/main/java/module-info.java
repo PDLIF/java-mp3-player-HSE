@@ -3,6 +3,7 @@ module com.example.helloworld {
     requires javafx.fxml;
     requires java.sql;
     requires org.apache.poi.ooxml;
+    requires org.postgresql.jdbc;
 
 
     exports com.example.databaseapp;

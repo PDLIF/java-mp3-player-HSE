@@ -124,6 +124,8 @@ public class Controller {
 
     @FXML
     private void onSelectDatabaseClick(ActionEvent event) {
+
+
 //        FileChooser fileChooser = new FileChooser();
 //        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
 //        File selectedFile = fileChooser.showOpenDialog(dataTable.getScene().getWindow());

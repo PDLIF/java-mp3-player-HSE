@@ -10,7 +10,7 @@ import java.sql.*;
 public class FileDatabasePostgres {
     private String filePath;
     private Map<Integer, Person> peopleMap; // Хранение данных в HashMap
-
+    Connection conn = null;
     public FileDatabasePostgres( ) throws IOException, ClassNotFoundException, SQLException {
 
         //1. Подключение к БД
@@ -20,16 +20,28 @@ public class FileDatabasePostgres {
 
         Class.forName("org.postgresql.Driver");
 
-        Connection conn1 = DriverManager.getConnection(url, userName, userPassd);
+        this.conn = DriverManager.getConnection(url, userName, userPassd);
 
         System.out.println("Соединение установлено");
+
+        createTable();
+
+        System.out.println("Вроде получается что-то создать");
     }
 
-    public FileDatabasePostgres(String filePath) throws IOException {
-        this.filePath = filePath;
-        this.peopleMap = new HashMap<>();
-        loadData(); // Загружаем данные при инициализации
+    public void createTable() {
+        String SQL = "CREATE TABLE IF NOT EXISTS books(" +
+                "id SERIAL PRIMARY KEY, " +
+                "title VARCHAR(100), " +
+                "author VARCHAR(100))";
+
+        try (Statement stmt = this.conn.createStatement()) {
+            stmt.executeUpdate(SQL);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
     }
+
 
     // Метод для загрузки данных из файла в HashMap
     private void loadData() throws IOException {

@@ -1,157 +1,127 @@
 package com.example.databaseapp;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 
 public class FileDatabasePostgres {
-    private String filePath;
-    private Map<Integer, Person> peopleMap; // Хранение данных в HashMap
-    Connection conn = null;
-    public FileDatabasePostgres( ) throws IOException, ClassNotFoundException, SQLException {
+    private Connection conn;
 
-        //1. Подключение к БД
-        //протокол:подпротокол(СУБД)://хост/БД
-        String url = "jdbc:postgresql://127.0.0.1:5432/TestJDBC",
-                userName = "postgres", userPassd = "123";
+    public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
+        String dbName = "smart_home_db";
+        String url = "jdbc:postgresql://127.0.0.1:5432/";
+        String userName = "postgres", userPassd = "123";
 
         Class.forName("org.postgresql.Driver");
 
-        this.conn = DriverManager.getConnection(url, userName, userPassd);
+        // Подключаемся к серверу PostgreSQL без указания БД
+        try (Connection tempConn = DriverManager.getConnection(url, userName, userPassd);
+             Statement stmt = tempConn.createStatement()) {
 
+            // Проверяем, существует ли база данных
+            ResultSet rs = stmt.executeQuery("SELECT 1 FROM pg_database WHERE datname = '" + dbName + "'");
+            if (!rs.next()) {
+                // Если БД нет — создаём
+                stmt.executeUpdate("CREATE DATABASE " + dbName);
+                System.out.println("База данных " + dbName + " создана.");
+            }
+        }
+
+        // Подключаемся к созданной базе
+        this.conn = DriverManager.getConnection(url + dbName, userName, userPassd);
         System.out.println("Соединение установлено");
 
-        createTable();
-
-        System.out.println("Вроде получается что-то создать");
+        // Загружаем SQL-скрипты при первом запуске
+        //executeSQLFile("scripts.sql");
     }
 
-    public void createTable() {
-        String SQL = "CREATE TABLE IF NOT EXISTS books(" +
-                "id SERIAL PRIMARY KEY, " +
-                "title VARCHAR(100), " +
-                "author VARCHAR(100))";
 
-        try (Statement stmt = this.conn.createStatement()) {
-            stmt.executeUpdate(SQL);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
+    // Выполнение SQL-файла
+    public void executeSQLFile(String filePath) throws IOException, SQLException {
+        String sql = new String(Files.readAllBytes(Paths.get(filePath)));
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
         }
     }
 
-
-    // Метод для загрузки данных из файла в HashMap
-    private void loadData() throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length >= 1) {
-                    int id = Integer.parseInt(parts[0]);
-                    String name = parts.length > 1 ? parts[1] : "";
-                    String birthdate = parts.length > 2 ? parts[2] : "";
-                    String email = parts.length > 3 ? parts[3] : "";
-                    peopleMap.put(id, new Person(id, name, birthdate, email)); // Добавляем в HashMap
-                }
-            }
+    // Вызов процедуры создания БД
+    public void createDatabase() throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL create_database()")) {
+            stmt.execute();
         }
     }
-    public void loadDataFromFile() throws IOException {
-        peopleMap.clear(); // Очищаем текущие данные
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length >= 1) {
-                    int id = Integer.parseInt(parts[0]);
-                    String name = parts.length > 1 ? parts[1] : "";
-                    String birthdate = parts.length > 2 ? parts[2] : "";
-                    String email = parts.length > 3 ? parts[3] : "";
-                    peopleMap.put(id, new Person(id, name, birthdate, email)); // Добавляем в HashMap
-                }
-            }
+
+    // Вызов процедуры удаления БД
+    public void dropDatabase() throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL drop_database()")) {
+            stmt.execute();
         }
     }
-    // Метод для чтения всех записей
-    public List<Person> readAll() {
-        return new ArrayList<>(peopleMap.values()); // Возвращаем список всех людей
-    }
-    // Добавление записи
-    public void add(Person person) throws IOException {
-        long startTime = System.nanoTime(); // Начало замера времени
-        peopleMap.put(person.getId(), person); // Добавляем или обновляем запись
-        saveData(); // Сохраняем данные в файл
-        long endTime = System.nanoTime(); // Конец замера времени
-        long duration = endTime - startTime;
-        System.out.println("Время добавления записи:  " + duration + " нс (" + (duration / 1_000_000_000) + " с)");
+
+    // Очистка таблицы устройств
+    public void clearDevicesTable() throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL clear_devices_table()")) {
+            stmt.execute();
+        }
     }
 
-    // Удаление записи
-    public void deleteById(int id) throws IOException {
-        long startTime = System.nanoTime(); // Начало замера времени
-        peopleMap.remove(id); // Удаляем запись по ID
-        saveData(); // Сохраняем данные в файл
-        long endTime = System.nanoTime(); // Конец замера времени
-        long duration = endTime - startTime;
-        System.out.println("Время удаления записи: " + duration + " нс (" + (duration / 1_000_000_000) + " с)");
+    // Добавление нового устройства
+    public void insertDevice(String name, String type, boolean status) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL insert_device(?, ?, ?)");) {
+            stmt.setString(1, name);
+            stmt.setString(2, type);
+            stmt.setBoolean(3, status);
+            stmt.execute();
+        }
     }
 
-    // Сохранение данных из HashMap в файл
-    private void saveData() throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            for (Person person : peopleMap.values()) {
-                writer.write(person.getId() + "," + person.getName() + "," + person.getBirthdate() + "," + person.getEmail());
-                writer.newLine();
+    // Поиск устройства по названию
+    public void searchDevice(String name) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("SELECT * FROM search_device(?)")) {
+            stmt.setString(1, name);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                System.out.println("ID: " + rs.getInt("id") + ", Name: " + rs.getString("name") + ", Type: " + rs.getString("type") + ", Status: " + rs.getBoolean("status"));
             }
         }
     }
 
-    // Поиск по ID
-    public Person searchById(int id) {
-        long startTime = System.nanoTime(); // Начало замера времени
-        Person person = peopleMap.get(id); // Поиск по ID за O(1)
-        long endTime = System.nanoTime(); // Конец замера времени
-        long duration = endTime - startTime;
-        System.out.println("Время поиска по ID: " + duration + " нс (" + (duration / 1_000_000_000) + " с)");
-        return person;
-    }
-
-    // Поиск по другим параметрам
-    public List<Person> search(String name, String birthdate, String email) {
-        long startTime = System.nanoTime(); // Начало замера времени
-        List<Person> result = new ArrayList<>();
-        for (Person person : peopleMap.values()) {
-            if ((name.isEmpty() || person.getName().toLowerCase().contains(name.toLowerCase())) &&
-                    (birthdate.isEmpty() || person.getBirthdate().equals(birthdate)) &&
-                    (email.isEmpty() || person.getEmail().toLowerCase().contains(email.toLowerCase()))) {
-                result.add(person);
-            }
-        }
-        long endTime = System.nanoTime(); // Конец замера времени
-        long duration = endTime - startTime;
-        System.out.println("Время поиска по параметрам: " + duration + " нс (" + (duration / 1_000_000_000) + " с)");
-        return result;
-    }
-
-    public void clear() throws IOException {
-        // Очищаем файл базы данных
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            peopleMap.clear(); // Очищаем HashMap
-            saveData(); // Очищаем файл базы данных
+    // Обновление статуса устройства
+    public void updateDeviceStatus(int deviceId, boolean newStatus) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL update_device_status(?, ?)");) {
+            stmt.setInt(1, deviceId);
+            stmt.setBoolean(2, newStatus);
+            stmt.execute();
         }
     }
-    public String getFilePath() {
-        return filePath;
+
+    // Удаление устройства по названию
+    public void deleteDeviceByName(String name) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL delete_device_by_name(?)")) {
+            stmt.setString(1, name);
+            stmt.execute();
+        }
     }
 
-    public int getMaxId() throws IOException {
-        List<Person> people = readAll(); // Предполагается, что этот метод возвращает список всех людей
-        return people.stream()
-                .mapToInt(Person::getId)
-                .max()
-                .orElse(0); // Если список пуст, возвращаем 0
+    // Создание пользователя с правами доступа
+    public void createUser(String username, String password, String role) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL create_user(?, ?, ?)");) {
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            stmt.setString(3, role);
+            stmt.execute();
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            FileDatabasePostgres db = new FileDatabasePostgres();
+            db.createDatabase();
+            db.insertDevice("Smart Light", "Light", true);
+            db.searchDevice("Smart Light");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

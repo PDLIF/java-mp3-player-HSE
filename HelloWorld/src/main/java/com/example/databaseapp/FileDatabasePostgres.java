@@ -1,9 +1,12 @@
 package com.example.databaseapp;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.List;
 
 public class FileDatabasePostgres {
     private Connection conn;
@@ -33,13 +36,17 @@ public class FileDatabasePostgres {
         System.out.println("Соединение установлено");
 
         // Загружаем SQL-скрипты при первом запуске
-        //executeSQLFile("scripts.sql");
+        executeSQLFile("scripts.sql");
     }
 
 
-    // Выполнение SQL-файла
     public void executeSQLFile(String filePath) throws IOException, SQLException {
-        String sql = new String(Files.readAllBytes(Paths.get(filePath)));
+        // Загружаем файл из ресурсов (предполагается, что он лежит в src/main/resources)
+        InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
+        if (is == null) {
+            throw new IOException("Файл " + filePath + " не найден в ресурсах.");
+        }
+        String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         }
@@ -123,5 +130,25 @@ public class FileDatabasePostgres {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void deleteDevice(int id) {
+    }
+
+    public Device searchDevices(String name, String type, String status) {
+        return null;
+    }
+
+    public List<Device> getAllDevices() {
+        return List.of();
+    }
+
+    public void addDevice(Device device) {
+    }
+
+    public void updateDevice(Device selected) {
+    }
+
+    public void clearAllDevices() {
     }
 }

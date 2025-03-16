@@ -10,48 +10,45 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="TOP_CENTER" prefHeight="525.0" prefWidth="844.0" spacing="10.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.databaseapp.Controller">
+<VBox alignment="TOP_CENTER" prefHeight="600.0" prefWidth="900.0" spacing="10.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.databaseapp.Controller">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
-   <SplitPane dividerPositions="0.5" prefHeight="38.0" prefWidth="824.0">
-      <items>
-          <HBox alignment="CENTER" spacing="10.0">
-              <!-- Верхняя панель с кнопками операций -->
-              <Button onAction="#onSelectDatabaseClick" text="Выбрать БД" />
-              <Button onAction="#onCreateDatabaseClick" text="Создать БД" />
-          </HBox>
-           <HBox fx:id="DataBaseActiveButtons" alignment="CENTER" spacing="10.0">
-               <Button onAction="#onResetButtonClick" text="Сброс" />
-               <Button onAction="#onUpdateButtonClick" text="Обновить БД" />
-               <Button onAction="#onClearButtonClick" text="Очистить БД" />
-               <Button onAction="#onExportToExcelClick" text="Экспорт в Excel" />
-           </HBox>
-      </items>
-   </SplitPane>
 
-       <!-- Поля ввода для данных -->
-    <HBox fx:id="TableButtons" spacing="10.0">
-        <Button onAction="#onAddButtonClick" text="Добавить" />
-      <Button onAction="#onEditButtonClick" text="Изменить" />
-        <Button onAction="#onDeleteButtonClick" text="Удалить" />
-        <HBox fx:id="SearchButtons" alignment="TOP_RIGHT" spacing="10.0">
-            <Button onAction="#onFindButtonClick" prefHeight="25.0" prefWidth="62.0" text="Найти" />
-            <TextField fx:id="FindId" prefHeight="25.0" prefWidth="54.0" promptText="ID" />
-            <TextField fx:id="FindName" promptText="Имя" />
-            <DatePicker fx:id="FindBirthdate" prefHeight="25.0" prefWidth="141.0" promptText="Дата рождения (YYYY-MM-DD)" />
-            <TextField fx:id="FindEmail" promptText="Email" />
-        </HBox>
+    <!-- Панель управления базой -->
+    <HBox alignment="CENTER" spacing="10.0">
+        <Button onAction="#onSelectDatabaseClick" text="Выбрать БД" />
+        <Button onAction="#onCreateDatabaseClick" text="Создать БД" />
+        <Button onAction="#onUpdateDatabaseClick" text="Обновить" />
+        <Button onAction="#onClearDatabaseClick" text="Очистить" />
+        <Button onAction="#onExportToExcelClick" text="Экспорт в Excel" />
     </HBox>
 
-             <!-- Таблица для отображения данных -->
-    <TableView fx:id="dataTable" editable="true">
+    <!-- Поля ввода -->
+    <HBox spacing="10.0">
+        <TextField fx:id="deviceNameField" promptText="Название устройства" />
+        <TextField fx:id="deviceTypeField" promptText="Тип (освещение, температура...)" />
+        <TextField fx:id="deviceStatusField" promptText="Статус (включено/выключено)" />
+        <Button onAction="#onAddDeviceClick" text="Добавить" />
+        <Button onAction="#onEditDeviceClick" text="Изменить" />
+        <Button onAction="#onDeleteDeviceClick" text="Удалить" />
+    </HBox>
+
+    <!-- Таблица с устройствами -->
+    <TableView fx:id="deviceTable" editable="true">
         <columns>
             <TableColumn fx:id="idColumn" text="ID" />
-            <TableColumn fx:id="nameColumn" prefWidth="265.0" text="Имя" />
-            <TableColumn fx:id="birthdateColumn" prefWidth="203.0" text="Дата рождения" />
-            <TableColumn fx:id="emailColumn" prefWidth="275.0" text="Email" />
+            <TableColumn fx:id="nameColumn" text="Название" />
+            <TableColumn fx:id="typeColumn" text="Тип" />
+            <TableColumn fx:id="statusColumn" text="Статус" />
         </columns>
     </TableView>
-    <HBox spacing="10.0" />
+
+    <!-- Панель поиска -->
+    <HBox spacing="10.0">
+        <TextField fx:id="searchNameField" promptText="Название" />
+        <TextField fx:id="searchTypeField" promptText="Тип" />
+        <TextField fx:id="searchStatusField" promptText="Статус" />
+        <Button onAction="#onSearchDeviceClick" text="Найти" />
+    </HBox>
 </VBox>

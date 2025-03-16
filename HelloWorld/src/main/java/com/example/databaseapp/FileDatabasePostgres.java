@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class FileDatabasePostgres {
@@ -132,23 +133,79 @@ public class FileDatabasePostgres {
         }
     }
 
-    public void deleteDevice(int id) {
+    public void deleteDevice(int id) throws SQLException {
+        String sql = "DELETE FROM devices WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        }
     }
 
-    public Device searchDevices(String name, String type, String status) {
-        return null;
+    public List<Device> searchDevices(String name, String type, String status) throws SQLException {
+        List<Device> devices = new ArrayList<>();
+        String sql = "SELECT * FROM devices WHERE name LIKE ? AND type LIKE ? AND status LIKE ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, "%" + name + "%");
+            stmt.setString(2, "%" + type + "%");
+            stmt.setString(3, "%" + status + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Device device = new Device(
+                            rs.getInt("id"),
+                            rs.getString("name"),
+                            rs.getString("type"),
+                            rs.getString("status")
+                    );
+                    devices.add(device);
+                }
+            }
+        }
+        return devices;
     }
 
-    public List<Device> getAllDevices() {
-        return List.of();
+    public List<Device> getAllDevices() throws SQLException {
+        List<Device> devices = new ArrayList<>();
+        String sql = "SELECT * FROM devices";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                Device device = new Device(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("type"),
+                        rs.getString("status")
+                );
+                devices.add(device);
+            }
+        }
+        return devices;
     }
 
-    public void addDevice(Device device) {
+    public void addDevice(Device device) throws SQLException {
+        String sql = "INSERT INTO devices (name, type, status) VALUES (?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, device.getName());
+            stmt.setString(2, device.getType());
+            stmt.setString(3, device.getStatus());
+            stmt.executeUpdate();
+        }
     }
 
-    public void updateDevice(Device selected) {
+    public void updateDevice(Device device) throws SQLException {
+        String sql = "UPDATE devices SET name = ?, type = ?, status = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, device.getName());
+            stmt.setString(2, device.getType());
+            stmt.setString(3, device.getStatus());
+            stmt.setInt(4, device.getId());
+            stmt.executeUpdate();
+        }
     }
 
-    public void clearAllDevices() {
+    public void clearAllDevices() throws SQLException {
+        String sql = "DELETE FROM devices";
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+        }
     }
 }

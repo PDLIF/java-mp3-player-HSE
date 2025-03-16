@@ -33,7 +33,7 @@ public class Controller {
     }
 
     @FXML
-    public void initialize() {
+    public void initialize() throws SQLException {
         idColumn.setCellValueFactory(cellData -> cellData.getValue().idProperty().asObject());
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
         typeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
@@ -43,13 +43,13 @@ public class Controller {
         loadDevices();
     }
 
-    private void loadDevices() {
+    private void loadDevices() throws SQLException {
         List<Device> deviceList = database.getAllDevices();
         devices.setAll(deviceList);
     }
 
     @FXML
-    private void onAddDeviceClick(ActionEvent event) {
+    private void onAddDeviceClick(ActionEvent event) throws SQLException {
         String name = deviceNameField.getText();
         String type = deviceTypeField.getText();
         String status = deviceStatusField.getText();
@@ -60,7 +60,7 @@ public class Controller {
     }
 
     @FXML
-    private void onEditDeviceClick(ActionEvent event) {
+    private void onEditDeviceClick(ActionEvent event) throws SQLException {
         Device selected = deviceTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             selected.setName(deviceNameField.getText());
@@ -72,7 +72,7 @@ public class Controller {
     }
 
     @FXML
-    private void onDeleteDeviceClick() {
+    private void onDeleteDeviceClick() throws SQLException {
         Device selected = deviceTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             database.deleteDevice(selected.getId());
@@ -81,7 +81,7 @@ public class Controller {
     }
 
     @FXML
-    private void onSearchDeviceClick() {
+    private void onSearchDeviceClick() throws SQLException {
         String name = searchNameField.getText();
         String type = searchTypeField.getText();
         String status = searchStatusField.getText();
@@ -94,12 +94,12 @@ public class Controller {
     }
 
     @FXML
-    private void onUpdateDatabaseClick(ActionEvent event) {
+    private void onUpdateDatabaseClick(ActionEvent event) throws SQLException {
         loadDevices();
     }
 
     @FXML
-    private void onClearDatabaseClick(ActionEvent event) {
+    private void onClearDatabaseClick(ActionEvent event) throws SQLException {
         database.clearAllDevices();
         loadDevices();
     }

@@ -11,7 +11,7 @@ import java.util.List;
 
 public class FileDatabasePostgres {
     private Connection conn;
-
+    static String sql_path = "scripts.sql";
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
         String dbName = "smart_home_db";
         String url = "jdbc:postgresql://127.0.0.1:5432/";
@@ -37,7 +37,7 @@ public class FileDatabasePostgres {
         System.out.println("Соединение установлено");
 
         // Загружаем SQL-скрипты при первом запуске
-        executeSQLFile("scripts.sql");
+        executeSQLFile(sql_path);
     }
 
 
@@ -53,12 +53,20 @@ public class FileDatabasePostgres {
         }
     }
 
-    // Вызов процедуры создания БД
-    public void createDatabase() throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL create_database()")) {
-            stmt.execute();
+    public void createDatabase(String dbName) throws SQLException, IOException {
+        String adminUrl = "jdbc:postgresql://127.0.0.1:5432/postgres"; // Подключаемся к дефолтной БД
+        String user = "postgres", password = "123";
+
+        // 1. Создаём новую БД
+        try (Connection adminConn = DriverManager.getConnection(adminUrl, user, password);
+             Statement stmt = adminConn.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE " + dbName);
         }
+
+        executeSQLFile(sql_path);
+
     }
+
 
     // Вызов процедуры удаления БД
     public void dropDatabase() throws SQLException {
@@ -119,17 +127,6 @@ public class FileDatabasePostgres {
             stmt.setString(2, password);
             stmt.setString(3, role);
             stmt.execute();
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            FileDatabasePostgres db = new FileDatabasePostgres();
-            db.createDatabase();
-            db.insertDevice("Smart Light", "Light", true);
-            db.searchDevice("Smart Light");
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

@@ -1,10 +1,39 @@
--- Создание таблицы устройств
-CREATE TABLE IF NOT EXISTS devices (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    type VARCHAR(50),
-    status BOOLEAN DEFAULT false
-);
+CREATE OR REPLACE FUNCTION create_database(db_name TEXT) RETURNS VOID AS $$
+DECLARE
+    sql_command TEXT;
+BEGIN
+    -- Проверяем, существует ли уже база
+    IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = db_name) THEN
+        -- Создаём базу данных
+        sql_command := format('CREATE DATABASE %I', db_name);
+        EXECUTE sql_command;
+    END IF;
+
+    -- Подключаемся к новой базе и создаём таблицу devices
+    sql_command := format(
+        'CREATE TABLE IF NOT EXISTS %I.devices (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            type VARCHAR(50),
+            status BOOLEAN DEFAULT false
+        );', db_name);
+    EXECUTE sql_command;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Хранимая процедура для создания таблицы в текущей БД
+CREATE OR REPLACE PROCEDURE create_devices_table()
+LANGUAGE plpgsql AS $$
+BEGIN
+    CREATE TABLE IF NOT EXISTS devices (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        type VARCHAR(50),
+        status BOOLEAN DEFAULT false
+    );
+END;
+$$;
+
 
 -- Очистка таблицы устройств
 CREATE OR REPLACE PROCEDURE clear_devices_table()

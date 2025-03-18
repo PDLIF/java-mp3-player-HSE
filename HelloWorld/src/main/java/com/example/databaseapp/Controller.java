@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 
+import java.io.Console;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -112,27 +113,41 @@ public class Controller {
     @FXML
     public void onSelectDatabaseClick(ActionEvent actionEvent) {
         try {
-            // Получаем список баз данных
             List<String> databases = getAvailableDatabases();
+            databases.add("Создать новую базу данных...");
 
-            if (databases.isEmpty()) {
-                showAlert("Нет доступных баз данных.");
-                return;
-            }
-
-            // Создаём диалог выбора базы
             ChoiceDialog<String> dialog = new ChoiceDialog<>(databases.get(0), databases);
             dialog.setTitle("Выбор базы данных");
-            dialog.setHeaderText("Выберите базу данных для подключения");
+            dialog.setHeaderText("Выберите базу данных или создайте новую");
             dialog.setContentText("Доступные БД:");
 
-            // Ожидаем выбор пользователя
             dialog.showAndWait().ifPresent(selectedDb -> {
-                try {
-                    database.connectToDatabase(selectedDb);
-                    showAlert("Подключено к базе: " + selectedDb);
-                } catch (SQLException e) {
-                    showAlert("Ошибка подключения: " + e.getMessage());
+                if ("Создать новую базу данных...".equals(selectedDb)) {
+                    TextInputDialog inputDialog = new TextInputDialog();
+                    inputDialog.setTitle("Создание базы данных");
+                    inputDialog.setHeaderText("Введите имя новой базы данных");
+                    inputDialog.setContentText("Имя БД:");
+
+                    inputDialog.showAndWait().ifPresent(newDbName -> {
+                        if (newDbName.trim().isEmpty()) {
+                            showAlert("Имя базы данных не может быть пустым!");
+                            return;
+                        }
+                        try {
+                            database.createDatabase(newDbName);
+                            showAlert("База данных '" + newDbName + "' успешно создана!");
+                        } catch (SQLException | IOException e) {
+                            showAlert("Ошибка при создании БД: " + e.getMessage());
+                        }
+                    });
+
+                } else {
+                    try {
+                        database.connectToDatabase(selectedDb);
+                        showAlert("Подключено к базе: " + selectedDb);
+                    } catch (SQLException e) {
+                        showAlert("Ошибка подключения: " + e.getMessage());
+                    }
                 }
             });
 
@@ -141,12 +156,16 @@ public class Controller {
         }
     }
 
+
+
+
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Информация");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+        System.out.println(message);
     }
 
 

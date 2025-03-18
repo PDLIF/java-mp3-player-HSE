@@ -208,4 +208,29 @@ public class FileDatabasePostgres {
             stmt.executeUpdate(sql);
         }
     }
+    void connectToDatabase(String dbName) throws SQLException {
+        String url = "jdbc:postgresql://127.0.0.1:5432/" + dbName;
+        String user = "postgres", password = "123";
+
+        if (conn != null && !conn.isClosed()) {
+            conn.close();
+        }
+
+        conn = DriverManager.getConnection(url, user, password);
+    }
+    public static List<String> getAvailableDatabases() throws SQLException {
+        List<String> databases = new ArrayList<>();
+        String query = "SELECT datname FROM pg_database WHERE datistemplate = false";
+
+        try (Connection tempConn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:5432/", "postgres", "123");
+             Statement stmt = tempConn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            while (rs.next()) {
+                databases.add(rs.getString("datname"));
+            }
+        }
+        return databases;
+    }
+
 }

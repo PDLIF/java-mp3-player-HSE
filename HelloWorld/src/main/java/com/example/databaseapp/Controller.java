@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import static com.example.databaseapp.FileDatabasePostgres.getAvailableDatabases;
+
 public class Controller {
     @FXML private TableView<Device> deviceTable;
     @FXML private TableColumn<Device, Integer> idColumn;
@@ -107,8 +109,41 @@ public class Controller {
     public void setPrimaryStage(Stage stage) {
     }
 
+    @FXML
     public void onSelectDatabaseClick(ActionEvent actionEvent) {
+        try {
+            // Получаем список баз данных
+            List<String> databases = getAvailableDatabases();
+
+            if (databases.isEmpty()) {
+                showAlert("Нет доступных баз данных.");
+                return;
+            }
+
+            // Создаём диалог выбора базы
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(databases.get(0), databases);
+            dialog.setTitle("Выбор базы данных");
+            dialog.setHeaderText("Выберите базу данных для подключения");
+            dialog.setContentText("Доступные БД:");
+
+            // Ожидаем выбор пользователя
+            dialog.showAndWait().ifPresent(selectedDb -> {
+                try {
+                    database.connectToDatabase(selectedDb);
+                    showAlert("Подключено к базе: " + selectedDb);
+                } catch (SQLException e) {
+                    showAlert("Ошибка подключения: " + e.getMessage());
+                }
+            });
+
+        } catch (SQLException e) {
+            showAlert("Ошибка получения списка БД: " + e.getMessage());
+        }
     }
+
+    private void showAlert(String s) {
+    }
+
 
     public void onCreateDatabaseClick(ActionEvent actionEvent) {
     }

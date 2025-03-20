@@ -1,3 +1,4 @@
+-- Создание базы данных и таблицы devices
 CREATE OR REPLACE FUNCTION create_database(db_name TEXT) RETURNS VOID AS $$
 DECLARE
     sql_command TEXT;
@@ -34,6 +35,18 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE ensure_devices_table_exists()
+LANGUAGE plpgsql AS $$
+BEGIN
+    -- Проверяем и создаём таблицу, если её нет
+    CREATE TABLE IF NOT EXISTS devices (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        type VARCHAR(50),
+        status BOOLEAN DEFAULT false
+    );
+END;
+$$;
 
 -- Очистка таблицы устройств
 CREATE OR REPLACE PROCEDURE clear_devices_table()
@@ -87,5 +100,50 @@ BEGIN
         EXECUTE format('GRANT CONNECT ON DATABASE smart_home_db TO %I', username);
         EXECUTE format('GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO %I', username);
     END IF;
+END;
+$$;
+
+-- Функция для получения всех устройств
+CREATE OR REPLACE FUNCTION get_all_devices()
+RETURNS TABLE(id INT, name VARCHAR, type VARCHAR, status BOOLEAN) AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM devices;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION search_devices(device_name VARCHAR, device_type VARCHAR, device_status VARCHAR)
+RETURNS TABLE(id INT, name VARCHAR, type VARCHAR, status BOOLEAN) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT devices.id, devices.name, devices.type, devices.status
+    FROM devices
+    WHERE
+        (device_name IS NULL OR devices.name ILIKE '%' || device_name || '%') AND
+        (device_type IS NULL OR devices.type ILIKE '%' || device_type || '%') AND
+        (device_status IS NULL OR devices.status::VARCHAR ILIKE '%' || device_status || '%');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Процедура для удаления устройства по ID
+CREATE OR REPLACE PROCEDURE delete_device_by_id(device_id INT)
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM devices WHERE id = device_id;
+END;
+$$;
+
+-- Процедура для обновления устройства
+CREATE OR REPLACE PROCEDURE update_device(device_id INT, device_name VARCHAR, device_type VARCHAR, device_status BOOLEAN)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE devices SET name = device_name, type = device_type, status = device_status WHERE id = device_id;
+END;
+$$;
+
+-- Процедура для очистки всех устройств
+CREATE OR REPLACE PROCEDURE clear_all_devices()
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM devices;
 END;
 $$;

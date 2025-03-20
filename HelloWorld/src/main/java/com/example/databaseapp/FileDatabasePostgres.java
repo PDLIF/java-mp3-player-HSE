@@ -3,8 +3,6 @@ package com.example.databaseapp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,15 +33,24 @@ public class FileDatabasePostgres {
 
         // Подключаемся к созданной базе
         this.conn = DriverManager.getConnection(url + dbName, userName, userPassd);
-        System.out.println("Соединение установлено");
+        System.out.println("Соединение установлено с бд: "+dbName);
 
         // Загружаем SQL-скрипты при первом запуске
         executeSQLFile(sql_path);
     }
 
-
     public void executeSQLFile(String filePath) throws IOException, SQLException {
         // Загружаем файл из ресурсов (предполагается, что он лежит в src/main/resources)
+        InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
+        if (is == null) {
+            throw new IOException("Файл " + filePath + " не найден в ресурсах.");
+        }
+        String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+    private void executeSQLFile(Connection conn, String filePath) throws IOException, SQLException {
         InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
         if (is == null) {
             throw new IOException("Файл " + filePath + " не найден в ресурсах.");
@@ -64,16 +71,8 @@ public class FileDatabasePostgres {
             stmt.executeUpdate("CREATE DATABASE " + dbName);
         }
 
-        executeSQLFile(sql_path);
+        connectToDatabase(dbName);
 
-    }
-
-
-    // Вызов процедуры удаления БД
-    public void dropDatabase() throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL drop_database()")) {
-            stmt.execute();
-        }
     }
 
     // Очистка таблицы устройств
@@ -84,29 +83,52 @@ public class FileDatabasePostgres {
     }
 
     // Добавление нового устройства
-    public void insertDevice(String name, String type, boolean status) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL insert_device(?, ?, ?)");) {
+    public void addDevice(String name, String type, boolean status) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL insert_device(?, ?, ?)")) {
             stmt.setString(1, name);
             stmt.setString(2, type);
             stmt.setBoolean(3, status);
             stmt.execute();
         }
     }
+    // Добавление нового устройства
+    public void addDevice(Device device) throws SQLException {
+        try (CallableStatement stmt = conn.prepareCall("CALL insert_device(?, ?, ?)")) {
+            stmt.setString(1, device.getName());
+            stmt.setString(2, device.getType());
+            stmt.setBoolean(3, device.getStatus());
+            stmt.execute();
+        }
+    }
 
-    // Поиск устройства по названию
-    public void searchDevice(String name) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("SELECT * FROM search_device(?)")) {
-            stmt.setString(1, name);
+    public List<Device> searchDevices(String name, String type, String status) throws SQLException {
+        List<Device> devices = new ArrayList<>();
+        try (CallableStatement stmt = conn.prepareCall("{ call search_devices(?, ?, ?) }")) {
+            // Устанавливаем параметры для поиска
+            stmt.setString(1, name.isEmpty() ? null : name); // Если поле пустое, передаем NULL
+            stmt.setString(2, type.isEmpty() ? null : type); // Если поле пустое, передаем NULL
+            stmt.setString(3, status.isEmpty() ? null : status); // Если поле пустое, передаем NULL
+
+            // Выполняем запрос
             ResultSet rs = stmt.executeQuery();
+
+            // Обрабатываем результат
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Name: " + rs.getString("name") + ", Type: " + rs.getString("type") + ", Status: " + rs.getBoolean("status"));
+                Device device = new Device(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("type"),
+                        rs.getBoolean("status")
+                );
+                devices.add(device);
             }
         }
+        return devices;
     }
 
     // Обновление статуса устройства
     public void updateDeviceStatus(int deviceId, boolean newStatus) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL update_device_status(?, ?)");) {
+        try (CallableStatement stmt = conn.prepareCall("CALL update_device_status(?, ?)")) {
             stmt.setInt(1, deviceId);
             stmt.setBoolean(2, newStatus);
             stmt.execute();
@@ -121,52 +143,29 @@ public class FileDatabasePostgres {
         }
     }
 
+    // Создание пользователя
     public void createUser(String username, String password, String role) throws SQLException {
-        if (conn == null) {
-            throw new SQLException("Нет соединения с базой данных.");
-        }
-        try (CallableStatement stmt = conn.prepareCall("{ call create_user(?, ?, ?) }")) {
+        try (CallableStatement stmt = conn.prepareCall("CALL create_user(?, ?, ?)")) {
             stmt.setString(1, username);
             stmt.setString(2, password);
-            stmt.setString(3, role.toLowerCase());
+            stmt.setString(3, role);
             stmt.execute();
         }
     }
+
+    // Удаление устройства по ID
     public void deleteDevice(int id) throws SQLException {
-        String sql = "DELETE FROM devices WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (CallableStatement stmt = conn.prepareCall("CALL delete_device_by_id(?)")) {
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            stmt.execute();
         }
     }
 
-    public List<Device> searchDevices(String name, String type, String status) throws SQLException {
-        List<Device> devices = new ArrayList<>();
-        String sql = "SELECT * FROM devices WHERE name LIKE ? AND type LIKE ? AND status LIKE ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, "%" + name + "%");
-            stmt.setString(2, "%" + type + "%");
-            stmt.setString(3, "%" + status + "%");
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Device device = new Device(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            rs.getString("type"),
-                            rs.getBoolean("status")
-                    );
-                    devices.add(device);
-                }
-            }
-        }
-        return devices;
-    }
-
+    // Получение всех устройств
     public List<Device> getAllDevices() throws SQLException {
         List<Device> devices = new ArrayList<>();
-        String sql = "SELECT * FROM devices";
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (CallableStatement stmt = conn.prepareCall("SELECT * FROM get_all_devices()")) {
+            ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Device device = new Device(
                         rs.getInt("id"),
@@ -180,34 +179,26 @@ public class FileDatabasePostgres {
         return devices;
     }
 
-    public void addDevice(Device device) throws SQLException {
-        String sql = "INSERT INTO devices (name, type, status) VALUES (?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, device.getName());
-            stmt.setString(2, device.getType());
-            stmt.setBoolean(3, device.getStatus());
-            stmt.executeUpdate();
-        }
-    }
-
+    // Обновление устройства
     public void updateDevice(Device device) throws SQLException {
-        String sql = "UPDATE devices SET name = ?, type = ?, status = ? WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, device.getName());
-            stmt.setString(2, device.getType());
-            stmt.setBoolean(3, device.getStatus());
-            stmt.setInt(4, device.getId());
-            stmt.executeUpdate();
+        try (CallableStatement stmt = conn.prepareCall("CALL update_device(?, ?, ?, ?)")) {
+            stmt.setInt(1, device.getId());
+            stmt.setString(2, device.getName());
+            stmt.setString(3, device.getType());
+            stmt.setBoolean(4, device.getStatus());
+            stmt.execute();
         }
     }
 
+    // Очистка всех устройств
     public void clearAllDevices() throws SQLException {
-        String sql = "DELETE FROM devices";
-        try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(sql);
+        try (CallableStatement stmt = conn.prepareCall("CALL clear_all_devices()")) {
+            stmt.execute();
         }
     }
-    void connectToDatabase(String dbName) throws SQLException {
+
+    // Подключение к базе данных
+    public void connectToDatabase(String dbName) throws SQLException, IOException {
         String url = "jdbc:postgresql://127.0.0.1:5432/" + dbName;
         String user = "postgres", password = "123";
 
@@ -216,7 +207,16 @@ public class FileDatabasePostgres {
         }
 
         conn = DriverManager.getConnection(url, user, password);
+        System.out.println("Сейчас выполнится скрипт");
+
+        executeSQLFile(conn,sql_path);
+        try (CallableStatement stmt = conn.prepareCall("CALL create_devices_table()")) {
+            stmt.execute();
+        }
+
     }
+
+    // Получение списка доступных баз данных
     public static List<String> getAvailableDatabases() throws SQLException {
         List<String> databases = new ArrayList<>();
         String query = "SELECT datname FROM pg_database WHERE datistemplate = false";

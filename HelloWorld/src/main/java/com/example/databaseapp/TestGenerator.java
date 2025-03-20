@@ -3,40 +3,27 @@ package com.example.databaseapp;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.sql.SQLException;
 import java.util.Random;
 
 public class TestGenerator {
-    public static void main(String[] args) {
-        String filePath = "E:/Education/DB/generated_data.csv"; // Путь к файлу, который будет создан
-        int numberOfRecords = 30000; // Количество записей для генерации
-        generateData(filePath, numberOfRecords);
-    }
 
-    private static void generateData(String filePath, int numberOfRecords) {
+    public static void generateDeviceData(FileDatabasePostgres databasePostgres, int numberOfRecords) throws SQLException {
         Random random = new Random();
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String[] names = {"Иванов Иван", "Петров Петр", "Сидоров Сидор", "Николаев Николай", "Васильев Василий", "Смирнов Сергей", "Кузнецов Алексей", "Попов Андрей", "Соловьев Артем", "Морозов Дмитрий"};
+        String[] names = {"Smart Light", "Thermostat", "Security Camera", "Smart Plug", "Smart Lock", "Motion Sensor", "Doorbell", "Smart Speaker", "Smart TV", "Smart Fridge"};
+        String[] types = {"Lighting", "Climate", "Security", "Energy", "Access", "Sensor", "Audio", "Video", "Appliance"};
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+
             for (int i = 1; i <= numberOfRecords; i++) {
                 String name = names[random.nextInt(names.length)];
-                LocalDate date = LocalDate.now().minusDays(random.nextInt(365)); // Генерируем случайную дату за последний год
-                String email = generateEmail(name);
-                writer.write(i + "," + name + "," + date.format(dateFormatter) + "," + email);
-                writer.newLine();
-            }
-            System.out.println("Данные успешно сгенерированы в " + filePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+                String type = types[random.nextInt(types.length)];
+                boolean status = random.nextBoolean();
 
-    private static String generateEmail(String name) {
-        String[] domains = {"example.com", "mail.ru", "gmail.com", "yahoo.com", "hotmail.com"};
-        String[] nameParts = name.split(" ");
-        String email = nameParts[0].toLowerCase() + "." + nameParts[1].toLowerCase() + "@" + domains[new Random().nextInt(domains.length)];
-        return email;
+                Device device = new Device(i,name,type,status);
+                databasePostgres.addDevice(device);
+
+            }
+            System.out.println("Данные устройств успешно сгенерированы");
+
     }
 }

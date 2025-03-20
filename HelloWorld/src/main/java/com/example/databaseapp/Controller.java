@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
+import jdk.incubator.vector.VectorOperators;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -92,6 +93,8 @@ public class Controller {
                         showAlert("Подключено к базе: " + selectedDb);
                     } catch (SQLException e) {
                         showAlert("Ошибка подключения: " + e.getMessage());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             });
@@ -160,6 +163,7 @@ public class Controller {
             }
         });
     }
+
     @FXML
     private void onClearDatabaseClick(ActionEvent event) throws SQLException {
         database.clearAllDevices();
@@ -167,8 +171,9 @@ public class Controller {
     }
 
     @FXML
-    private void onFillDatabaseClick(ActionEvent event) {
-        // Добавить экспорт в Excel
+    private void onFillDatabaseClick(ActionEvent event) throws SQLException {
+        TestGenerator.generateDeviceData(database,1000);
+        loadDevices();
     }
 
 

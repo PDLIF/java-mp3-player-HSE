@@ -4,6 +4,7 @@ module com.example.helloworld {
     requires java.sql;
     requires org.apache.poi.ooxml;
     requires org.postgresql.jdbc;
+    requires jdk.incubator.vector;
 
 
     exports com.example.databaseapp;

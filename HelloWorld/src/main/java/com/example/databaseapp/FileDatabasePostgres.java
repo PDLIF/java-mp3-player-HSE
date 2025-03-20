@@ -12,6 +12,7 @@ import java.util.List;
 public class FileDatabasePostgres {
     private Connection conn;
     static String sql_path = "scripts.sql";
+
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
         String dbName = "smart_home_db";
         String url = "jdbc:postgresql://127.0.0.1:5432/";
@@ -120,16 +121,17 @@ public class FileDatabasePostgres {
         }
     }
 
-    // Создание пользователя с правами доступа
     public void createUser(String username, String password, String role) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL create_user(?, ?, ?)");) {
+        if (conn == null) {
+            throw new SQLException("Нет соединения с базой данных.");
+        }
+        try (CallableStatement stmt = conn.prepareCall("{ call create_user(?, ?, ?) }")) {
             stmt.setString(1, username);
             stmt.setString(2, password);
-            stmt.setString(3, role);
+            stmt.setString(3, role.toLowerCase());
             stmt.execute();
         }
     }
-
     public void deleteDevice(int id) throws SQLException {
         String sql = "DELETE FROM devices WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -151,7 +153,7 @@ public class FileDatabasePostgres {
                             rs.getInt("id"),
                             rs.getString("name"),
                             rs.getString("type"),
-                            rs.getString("status")
+                            rs.getBoolean("status")
                     );
                     devices.add(device);
                 }
@@ -170,7 +172,7 @@ public class FileDatabasePostgres {
                         rs.getInt("id"),
                         rs.getString("name"),
                         rs.getString("type"),
-                        rs.getString("status")
+                        rs.getBoolean("status")
                 );
                 devices.add(device);
             }
@@ -183,7 +185,7 @@ public class FileDatabasePostgres {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, device.getName());
             stmt.setString(2, device.getType());
-            stmt.setString(3, device.getStatus());
+            stmt.setBoolean(3, device.getStatus());
             stmt.executeUpdate();
         }
     }
@@ -193,7 +195,7 @@ public class FileDatabasePostgres {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, device.getName());
             stmt.setString(2, device.getType());
-            stmt.setString(3, device.getStatus());
+            stmt.setBoolean(3, device.getStatus());
             stmt.setInt(4, device.getId());
             stmt.executeUpdate();
         }

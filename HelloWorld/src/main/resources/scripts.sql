@@ -75,7 +75,7 @@ BEGIN
 END;
 $$;
 
--- Создание пользователя с правами доступа
+-- Процедура для создания пользователя
 CREATE OR REPLACE PROCEDURE create_user(username VARCHAR, user_password TEXT, role VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -83,9 +83,9 @@ BEGIN
 
     IF role = 'admin' THEN
         EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE smart_home_db TO %I', username);
-    ELSIF role = 'guest' THEN
+    ELSIF role = 'user' THEN
         EXECUTE format('GRANT CONNECT ON DATABASE smart_home_db TO %I', username);
-        EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', username);
+        EXECUTE format('GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO %I', username);
     END IF;
 END;
 $$;

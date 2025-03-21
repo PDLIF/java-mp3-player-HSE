@@ -10,7 +10,15 @@ BEGIN
         -- Создаём базу данных
         sql_command := format('CREATE DATABASE %I', db_name);
         EXECUTE sql_command;
+
+
     END IF;
+
+    -- Выдаем права на подключение к новой базе данных всем пользователям
+    sql_command := format('GRANT CONNECT ON DATABASE %I TO PUBLIC', db_name);
+    EXECUTE sql_command;
+    sql_command := format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO PUBLIC', db_name);
+    EXECUTE sql_command;
 
     -- Подключаемся к новой базе и создаём таблицу devices
     sql_command := format(
@@ -23,6 +31,8 @@ BEGIN
     EXECUTE sql_command;
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 CREATE OR REPLACE FUNCTION get_users()
 RETURNS TABLE (username TEXT, is_admin BOOLEAN) AS $$
@@ -102,6 +112,34 @@ BEGIN
 END;
 $$;
 
+-- Создаем роль, если она не существует
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'connect_role') THEN
+        CREATE ROLE connect_role;
+    END IF;
+END $$;
+
+-- Выдаем права на подключение ко всем базам данных
+DO $$
+DECLARE
+    dbname TEXT;
+BEGIN
+    -- Перебираем все базы данных
+    FOR dbname IN SELECT datname FROM pg_database LOOP
+        -- Проверяем, не выданы ли уже права на подключение
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_database
+            JOIN pg_roles ON pg_roles.rolname = 'connect_role'
+            WHERE datname = dbname
+              AND has_database_privilege('connect_role', dbname, 'CONNECT')
+        ) THEN
+            EXECUTE format('GRANT CONNECT ON DATABASE %I TO connect_role', dbname);
+        END IF;
+    END LOOP;
+END $$;
+
 CREATE OR REPLACE PROCEDURE create_user(username VARCHAR, user_password TEXT, role VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -125,6 +163,9 @@ BEGIN
 
         -- Даем права на чтение будущих таблиц
         EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO %I', username);
+
+        -- Даем право на подключение ко всем базам данных
+        EXECUTE format('GRANT connect_role TO %I', username);
     END IF;
 END;
 $$;

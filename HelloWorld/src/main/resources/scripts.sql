@@ -22,12 +22,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP FUNCTION get_users;
 
 CREATE OR REPLACE FUNCTION get_users()
-RETURNS TABLE (username TEXT) AS $$
+RETURNS TABLE (username TEXT, is_admin BOOLEAN) AS $$
 BEGIN
     RETURN QUERY
-    SELECT rolname::TEXT AS username
+    SELECT
+        rolname::TEXT AS username,
+        rolsuper AS is_admin -- rolsuper = TRUE, если пользователь является администратором
     FROM pg_roles
     WHERE rolcanlogin = TRUE; -- Возвращаем только роли, которые могут логиниться
 END;

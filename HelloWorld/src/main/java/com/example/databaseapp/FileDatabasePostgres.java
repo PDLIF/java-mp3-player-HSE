@@ -130,8 +130,8 @@ public class FileDatabasePostgres {
             stmt.execute();
         }
     }
-    public List<String> getUsers() throws SQLException {
-        List<String> users = new ArrayList<>();
+    public List<User> getUsers() throws SQLException {
+        List<User> users = new ArrayList<>();
 
         // Выполняем SQL-запрос для получения списка пользователей
         try (CallableStatement stmt = conn.prepareCall("{ call get_users() }");
@@ -140,7 +140,8 @@ public class FileDatabasePostgres {
             // Читаем результаты
             while (rs.next()) {
                 String username = rs.getString("username");
-                users.add(username);
+                boolean isAdmin = rs.getBoolean("is_admin");
+                users.add(new User(username, isAdmin));
             }
         }
 

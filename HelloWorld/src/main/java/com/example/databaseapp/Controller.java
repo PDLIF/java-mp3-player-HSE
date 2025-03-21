@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -198,11 +199,17 @@ public class Controller {
     private void onSelectUser(ActionEvent event) {
         try {
             // Получаем список пользователей из базы данных
-            List<String> users = database.getUsers();
-            users.add("Создать нового"); // Добавляем опцию создания нового пользователя
+            List<User> users = database.getUsers();
+            List<String> userDisplayNames = new ArrayList<>();
+
+            // Формируем список для отображения в диалоге
+            for (User user : users) {
+                userDisplayNames.add(user.toString()); // Используем метод toString() для отображения роли
+            }
+            userDisplayNames.add("Создать нового"); // Добавляем опцию создания нового пользователя
 
             // Диалог выбора пользователя
-            ChoiceDialog<String> userDialog = new ChoiceDialog<>(users.get(0), users);
+            ChoiceDialog<String> userDialog = new ChoiceDialog<>(userDisplayNames.get(0), userDisplayNames);
             userDialog.setTitle("Выбор пользователя");
             userDialog.setHeaderText("Выберите пользователя или создайте нового");
             userDialog.setContentText("Выберите пользователя:");
@@ -213,7 +220,12 @@ public class Controller {
                     createNewUser();
                 } else {
                     // Обработка выбора существующего пользователя
-                    showAlert("Выбран существующий пользователь: " + selectedUser);
+                    for (User user : users) {
+                        if (selectedUser.startsWith(user.getUsername())) {
+                            showAlert("Выбран существующий пользователь: " + selectedUser);
+                            break;
+                        }
+                    }
                 }
             });
         } catch (SQLException e) {

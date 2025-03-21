@@ -11,6 +11,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -222,7 +223,24 @@ public class Controller {
                     // Обработка выбора существующего пользователя
                     for (User user : users) {
                         if (selectedUser.startsWith(user.getUsername())) {
-                            showAlert("Выбран существующий пользователь: " + selectedUser);
+                            // Диалог для ввода пароля
+                            TextInputDialog passwordDialog = new TextInputDialog();
+                            passwordDialog.setTitle("Ввод пароля");
+                            passwordDialog.setHeaderText("Введите пароль для пользователя " + user.getUsername());
+                            passwordDialog.setContentText("Пароль:");
+
+                            passwordDialog.showAndWait().ifPresent(password -> {
+                                try {
+                                    // Проверяем пароль
+
+                                    database.selectUser(user.getUsername(), password);
+                                    showAlert("Вход выполнен под пользователем: " + user.getUsername());
+
+                                } catch (SQLException e) {
+                                    String errorMessage = new String(e.getMessage().getBytes(StandardCharsets.UTF_8));
+                                    showAlert("Ошибка при проверке пароля: "+password+" " + errorMessage);
+                                }
+                            });
                             break;
                         }
                     }

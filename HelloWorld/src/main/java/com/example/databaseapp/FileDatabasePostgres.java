@@ -10,8 +10,8 @@ import java.util.List;
 public class FileDatabasePostgres {
     private Connection conn;
     static String sql_path = "scripts.sql";
-    static String url = "jdbc:postgresql://127.0.0.1:5432/";
-    String userName = "postgres", userPassd = "123";
+    static String url = "jdbc:postgresql://127.0.0.1:5432/", DataBaseurl = "jdbc:postgresql://127.0.0.1:5432/smart_home_db";
+    static String userName = "postgres", userPassd = "123", coding = "?charSet=UTF-8";
 
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
         String dbName = "smart_home_db";
@@ -20,7 +20,7 @@ public class FileDatabasePostgres {
         Class.forName("org.postgresql.Driver");
 
         // Подключаемся к серверу PostgreSQL без указания БД
-        try (Connection tempConn = DriverManager.getConnection(url, userName, userPassd);
+        try (Connection tempConn = DriverManager.getConnection(url+coding, userName, userPassd);
              Statement stmt = tempConn.createStatement()) {
 
             // Проверяем, существует ли база данных
@@ -121,6 +121,14 @@ public class FileDatabasePostgres {
         return devices;
     }
 
+    // Выбор пользователя
+    public void selectUser(String username,String password) throws SQLException {
+
+        userName = username; userPassd = password;
+
+
+        conn = DriverManager.getConnection(DataBaseurl+coding, userName, userPassd);
+    }
     // Создание пользователя
     public void createUser(String username, String password, String role) throws SQLException {
         try (CallableStatement stmt = conn.prepareCall("CALL create_user(?, ?, ?)")) {
@@ -129,6 +137,7 @@ public class FileDatabasePostgres {
             stmt.setString(3, role);
             stmt.execute();
         }
+        selectUser(username,password);
     }
     public List<User> getUsers() throws SQLException {
         List<User> users = new ArrayList<>();
@@ -193,14 +202,15 @@ public class FileDatabasePostgres {
 
     // Подключение к базе данных
     public void connectToDatabase(String dbName) throws SQLException, IOException {
-        String url = "jdbc:postgresql://127.0.0.1:5432/" + dbName;
-        String user = "postgres", password = "123";
+        DataBaseurl = "jdbc:postgresql://127.0.0.1:5432/" + dbName;
+        userName = "postgres";
+        userPassd = "123";
 
         if (conn != null && !conn.isClosed()) {
             conn.close();
         }
 
-        conn = DriverManager.getConnection(url, user, password);
+        conn = DriverManager.getConnection(url, userName, userPassd);
 
         executeSQLFile(conn,sql_path);
         try (CallableStatement stmt = conn.prepareCall("CALL create_devices_table()")) {

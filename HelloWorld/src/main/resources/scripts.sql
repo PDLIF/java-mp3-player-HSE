@@ -1,3 +1,5 @@
+UPDATE pg_database SET encoding = pg_char_to_encoding('UTF8');
+
 -- Создание базы данных и таблицы devices
 CREATE OR REPLACE FUNCTION create_database(db_name TEXT) RETURNS VOID AS $$
 DECLARE
@@ -21,6 +23,10 @@ BEGIN
     EXECUTE sql_command;
 END;
 $$ LANGUAGE plpgsql;
+
+
+--CREATE ROLE admin_role WITH LOGIN PASSWORD '12345' SUPERUSER;
+--CREATE ROLE user_role WITH LOGIN PASSWORD '123';
 
 DROP FUNCTION get_users;
 
@@ -102,17 +108,22 @@ BEGIN
 END;
 $$;
 
--- Процедура для создания пользователя
 CREATE OR REPLACE PROCEDURE create_user(username VARCHAR, user_password TEXT, role VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
+    -- Создаем пользователя
     EXECUTE format('CREATE USER %I WITH PASSWORD %L', username, user_password);
 
+    -- Даем права в зависимости от роли
     IF role = 'admin' THEN
+        -- Администратор получает полный доступ
         EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE smart_home_db TO %I', username);
+        EXECUTE format('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO %I', username);
+        EXECUTE format('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO %I', username);
     ELSIF role = 'user' THEN
+        -- Обычный пользователь получает доступ только на чтение
         EXECUTE format('GRANT CONNECT ON DATABASE smart_home_db TO %I', username);
-        EXECUTE format('GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO %I', username);
+        EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', username);
     END IF;
 END;
 $$;

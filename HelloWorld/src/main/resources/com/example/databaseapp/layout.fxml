@@ -19,13 +19,16 @@
     <!-- Панель управления базой -->
     <HBox alignment="CENTER" spacing="10.0">
         <Button onAction="#onSelectDatabaseClick" text="Выбрать БД" />
-        <Button onAction="#onSelectUser" text="Выбрать Пользователя" />
-        <Button onAction="#onClearDatabaseClick" text="Очистить" />
-        <Button onAction="#onFillDatabaseClick" text="Заполнить" />
+
+        <HBox fx:id="NoneDatabaseBox" alignment="CENTER" spacing="10.0">
+            <Button onAction="#onSelectUser" text="Выбрать Пользователя" />
+            <Button onAction="#onClearDatabaseClick" text="Очистить" />
+            <Button onAction="#onFillDatabaseClick" text="Заполнить" />
+        </HBox>
     </HBox>
 
     <!-- Поля ввода -->
-    <HBox spacing="10.0">
+    <HBox fx:id="deviceInput" spacing="10.0">
         <TextField fx:id="deviceNameField" promptText="Название устройства" />
         <TextField fx:id="deviceTypeField" promptText="Тип" />
         <CheckBox fx:id="deviceStatusCheckBox" text="Включено" />
@@ -45,7 +48,7 @@
     </TableView>
 
     <!-- Панель поиска -->
-    <HBox spacing="10.0">
+    <HBox fx:id="deviceFounding" spacing="10.0">
         <TextField fx:id="searchNameField" promptText="Название" />
         <TextField fx:id="searchTypeField" promptText="Тип" />
         <TextField fx:id="searchStatusField" promptText="Статус" />

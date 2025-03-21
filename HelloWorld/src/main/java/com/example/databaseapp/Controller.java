@@ -6,10 +6,9 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import jdk.incubator.vector.VectorOperators;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -20,6 +19,7 @@ import java.util.Optional;
 import static com.example.databaseapp.FileDatabasePostgres.getAvailableDatabases;
 
 public class Controller {
+
 
     @FXML private TableView<Device> deviceTable;
     @FXML private TableColumn<Device, Integer> idColumn;
@@ -35,9 +35,17 @@ public class Controller {
     @FXML private TextField searchTypeField;
     @FXML private TextField searchStatusField;
 
+    @FXML private HBox NoneDatabaseBox;
+    @FXML private HBox deviceInput;
+    @FXML private HBox deviceFounding;
+
+
     private FileDatabasePostgres database;
     private ObservableList<Device> devices = FXCollections.observableArrayList();
     private Stage stage;
+
+    boolean DataBaseChosen = false;
+
     public Controller() throws SQLException, IOException, ClassNotFoundException {
     }
 
@@ -46,6 +54,7 @@ public class Controller {
     public void initialize() throws SQLException, IOException, ClassNotFoundException {
         database = new FileDatabasePostgres();
 
+        HandleAccesibility();
 
         idColumn.setCellValueFactory(cellData -> cellData.getValue().idProperty().asObject());
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
@@ -130,6 +139,8 @@ public class Controller {
                 database.createDatabase(newDbName);
                 showAlert("База данных '" + newDbName + "' успешно создана!");
                 stage.setTitle("Работа с БД: "+newDbName);
+                DataBaseChosen = true;
+                HandleAccesibility();
             } catch (SQLException | IOException e) {
                 showAlert("Ошибка при создании БД: " + e.getMessage());
             }
@@ -142,6 +153,9 @@ public class Controller {
             database.connectToDatabase(selectedDb);
             showAlert("Подключено к базе: " + selectedDb);
             stage.setTitle("Работа с БД: "+selectedDb);
+            DataBaseChosen = true;
+            HandleAccesibility();
+
         } catch (SQLException e) {
             showAlert("Ошибка подключения: " + e.getMessage());
         } catch (IOException e) {
@@ -313,7 +327,13 @@ public class Controller {
         devices.setAll(database.searchDevices(name, type, status));
     }
 
+    private void HandleAccesibility(){
 
+        NoneDatabaseBox.setDisable(!DataBaseChosen);
+        deviceInput.setDisable(!DataBaseChosen);
+        deviceTable.setDisable(!DataBaseChosen);
+        deviceFounding.setDisable(!DataBaseChosen);
+    }
 
 
 

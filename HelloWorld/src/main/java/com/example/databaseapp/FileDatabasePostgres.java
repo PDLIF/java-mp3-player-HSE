@@ -10,7 +10,7 @@ import java.util.List;
 public class FileDatabasePostgres {
     private Connection conn;
     static String sql_path = "scripts.sql";
-    String url = "jdbc:postgresql://127.0.0.1:5432/";
+    static String url = "jdbc:postgresql://127.0.0.1:5432/";
     String userName = "postgres", userPassd = "123";
 
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
@@ -213,7 +213,7 @@ public class FileDatabasePostgres {
         List<String> databases = new ArrayList<>();
         String query = "SELECT datname FROM pg_database WHERE datistemplate = false";
 
-        try (Connection tempConn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:5432/", "postgres", "123");
+        try (Connection tempConn = DriverManager.getConnection(url, "postgres", "123");
              Statement stmt = tempConn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
 

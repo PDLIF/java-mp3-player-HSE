@@ -32,12 +32,6 @@ public class FileDatabasePostgres {
             }
         }
 
-        // Подключаемся к созданной базе
-        //this.conn = DriverManager.getConnection(url + dbName, userName, userPassd);
-        //System.out.println("Соединение установлено с бд: "+dbName);
-
-        // Загружаем SQL-скрипты при первом запуске
-        //executeSQLFile(sql_path);
     }
 
     public void executeSQLFile(String filePath) throws IOException, SQLException {
@@ -73,7 +67,7 @@ public class FileDatabasePostgres {
 
     }
 
-    public void DeleteDatabase(String dbName) throws SQLException, IOException {
+    public void deleteDatabase(String dbName) throws SQLException, IOException {
         // Создаем новое соединение с базой данных "postgres" (или другой системной БД)
         try (Connection adminConn = DriverManager.getConnection(url+"postgres", userName, userPassd)) {
             // Формируем SQL-запрос для удаления базы данных

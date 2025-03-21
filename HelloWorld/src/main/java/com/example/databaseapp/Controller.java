@@ -48,15 +48,12 @@ public class Controller {
 
     boolean DataBaseChosen = false;
 
-    public Controller() throws SQLException, IOException, ClassNotFoundException {
-    }
-
     // Init
     @FXML
     public void initialize() throws SQLException, IOException, ClassNotFoundException {
         database = new FileDatabasePostgres();
 
-        HandleAccesibility();
+        HandleAccessibility();
 
         idColumn.setCellValueFactory(cellData -> cellData.getValue().idProperty().asObject());
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
@@ -142,7 +139,7 @@ public class Controller {
                 showAlert("База данных '" + newDbName + "' успешно создана!");
                 stage.setTitle("Работа с БД: "+newDbName);
                 DataBaseChosen = true;
-                HandleAccesibility();
+                HandleAccessibility();
             } catch (SQLException | IOException e) {
                 showAlert("Ошибка при создании БД: " + e.getMessage());
             }
@@ -156,7 +153,7 @@ public class Controller {
             showAlert("Подключено к базе: " + selectedDb);
             stage.setTitle("Работа с БД: "+selectedDb);
             DataBaseChosen = true;
-            HandleAccesibility();
+            HandleAccessibility();
 
         } catch (SQLException e) {
             showAlert("Ошибка подключения: " + e.getMessage());
@@ -182,7 +179,7 @@ public class Controller {
                         showAlert("Имя базы данных не может быть пустым!");
                         return;
                     }
-                    database.DeleteDatabase(dbName);
+                    database.deleteDatabase(dbName);
                     showAlert("База данных '" + dbName + "' успешно удалена!");
                 } catch (SQLException | IOException e) {
                     showAlert("Ошибка при удалении БД: " + e.getMessage());
@@ -357,7 +354,7 @@ public class Controller {
         devices.setAll(database.searchDevices(name, type, status));
     }
 
-    private void HandleAccesibility(){
+    private void HandleAccessibility(){
 
         NoneDatabaseBox.setDisable(!DataBaseChosen);
         deviceInput.setDisable(!DataBaseChosen);

@@ -11,10 +11,11 @@ public class FileDatabasePostgres {
     private Connection conn;
     static String sql_path = "scripts.sql";
     static String url = "jdbc:postgresql://127.0.0.1:5432/", DataBaseurl = "jdbc:postgresql://127.0.0.1:5432/smart_home_db";
-    static String userName = "postgres", userPassd = "123", coding = "?charSet=UTF-8";
+    public static String userName = "postgres", dbName = "smart_home_db";
+    static String userPassd = "123", coding = "?charSet=UTF-8";
 
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
-        String dbName = "smart_home_db";
+        dbName = "smart_home_db";
 
 
         Class.forName("org.postgresql.Driver");
@@ -61,8 +62,9 @@ public class FileDatabasePostgres {
         try (Connection adminConn = DriverManager.getConnection(url+"postgres", userName, userPassd);
              Statement stmt = adminConn.createStatement()) {
             stmt.executeUpdate("CREATE DATABASE " + dbName);
+            conn = adminConn;
         }
-
+        ;
         connectToDatabase(dbName);
 
     }
@@ -195,16 +197,14 @@ public class FileDatabasePostgres {
     }
 
     // Подключение к базе данных
-    public void connectToDatabase(String dbName) throws SQLException, IOException {
-        DataBaseurl = "jdbc:postgresql://127.0.0.1:5432/" + dbName;
-        userName = "postgres";
-        userPassd = "123";
-
+    public void connectToDatabase(String _dbName) throws SQLException, IOException {
+        DataBaseurl = "jdbc:postgresql://127.0.0.1:5432/" + _dbName;
+        dbName = _dbName;
         if (conn != null && !conn.isClosed()) {
             conn.close();
         }
 
-        conn = DriverManager.getConnection(url, userName, userPassd);
+        conn = DriverManager.getConnection(DataBaseurl, userName, userPassd);
 
         executeSQLFile(conn,sql_path);
         try (CallableStatement stmt = conn.prepareCall("CALL create_devices_table()")) {

@@ -33,7 +33,6 @@
         <TextField fx:id="deviceTypeField" promptText="Тип" />
         <CheckBox fx:id="deviceStatusCheckBox" text="Включено" />
         <Button onAction="#onAddDeviceClick" text="Добавить" />
-        <Button onAction="#onEditDeviceClick" text="Изменить" />
         <Button onAction="#onDeleteDeviceClick" text="Удалить" />
     </HBox>
 

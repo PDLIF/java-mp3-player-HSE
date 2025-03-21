@@ -110,16 +110,22 @@ public class Controller {
             dialog.showAndWait().ifPresent(selectedDb -> {
                 if ("Создать новую базу данных...".equals(selectedDb)) {
                     handleCreateDatabase();
+
                 } else {
                     handleSelectDatabase(selectedDb);
                 }
-            });
 
+            });
+            try {
+                loadDevices();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         } catch (SQLException e) {
             showAlert("Ошибка получения списка БД: " + e.getMessage());
         }
 
-        loadDevices();
+
     }
 
     // Функция для создания новой базы данных
@@ -137,7 +143,7 @@ public class Controller {
             try {
                 database.createDatabase(newDbName);
                 showAlert("База данных '" + newDbName + "' успешно создана!");
-                stage.setTitle("Работа с БД: "+newDbName);
+                setTitle();
                 DataBaseChosen = true;
                 HandleAccessibility();
             } catch (SQLException | IOException e) {
@@ -151,7 +157,7 @@ public class Controller {
         try {
             database.connectToDatabase(selectedDb);
             showAlert("Подключено к базе: " + selectedDb);
-            stage.setTitle("Работа с БД: "+selectedDb);
+            setTitle();
             DataBaseChosen = true;
             HandleAccessibility();
 
@@ -232,6 +238,7 @@ public class Controller {
 
                                     database.selectUser(user.getUsername(), password);
                                     showAlert("Вход выполнен под пользователем: " + user.getUsername());
+                                    setTitle();
 
                                 } catch (SQLException e) {
                                     String errorMessage = new String(e.getMessage().getBytes(StandardCharsets.UTF_8));
@@ -301,14 +308,27 @@ public class Controller {
 
     @FXML
     private void onClearDatabaseClick(ActionEvent event) throws SQLException {
-        database.clearAllDevices();
-        loadDevices();
+
+        try {
+            database.clearAllDevices();
+            loadDevices();
+        }
+        catch (SQLException exception){
+            showAlert(exception.getMessage());
+        }
+
     }
 
     @FXML
     private void onFillDatabaseClick(ActionEvent event) throws SQLException {
-        TestGenerator.generateDeviceData(database,1000);
-        loadDevices();
+
+        try {
+            TestGenerator.generateDeviceData(database,1000);
+            loadDevices();
+        }
+        catch (SQLException exception){
+            showAlert(exception.getMessage());
+        }
     }
 
 
@@ -320,20 +340,15 @@ public class Controller {
         String type = deviceTypeField.getText();
         boolean status = deviceStatusCheckBox.isSelected();
         if (!name.isEmpty() && !type.isEmpty()) {
-            database.addDevice(new Device(0, name, type, status));
-            loadDevices();
-        }
-    }
 
-    @FXML
-    private void onEditDeviceClick(ActionEvent event) throws SQLException {
-        Device selected = deviceTable.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            selected.setName(deviceNameField.getText());
-            selected.setType(deviceTypeField.getText());
-            selected.setStatus(deviceStatusCheckBox.isSelected());
-            database.updateDevice(selected);
-            loadDevices();
+            try {
+                database.addDevice(new Device(0, name, type, status));
+                loadDevices();
+            }
+            catch (SQLException exception){
+                showAlert(exception.getMessage());
+            }
+
         }
     }
 
@@ -341,8 +356,14 @@ public class Controller {
     private void onDeleteDeviceClick() throws SQLException {
         Device selected = deviceTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            database.deleteDevice(selected.getId());
-            loadDevices();
+
+            try {
+                database.deleteDevice(selected.getId());
+                loadDevices();
+            }
+            catch (SQLException exception){
+                showAlert(exception.getMessage());
+            }
         }
     }
 
@@ -363,7 +384,9 @@ public class Controller {
     }
 
 
-
+    private void setTitle(){
+        stage.setTitle("Работа с БД: "+ FileDatabasePostgres.dbName + ", пользователь: "+ FileDatabasePostgres.userName);
+    }
 
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);

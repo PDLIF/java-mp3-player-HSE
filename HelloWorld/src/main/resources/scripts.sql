@@ -24,12 +24,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
---CREATE ROLE admin_role WITH LOGIN PASSWORD '12345' SUPERUSER;
---CREATE ROLE user_role WITH LOGIN PASSWORD '123';
-
-DROP FUNCTION get_users;
-
 CREATE OR REPLACE FUNCTION get_users()
 RETURNS TABLE (username TEXT, is_admin BOOLEAN) AS $$
 BEGIN
@@ -120,10 +114,17 @@ BEGIN
         EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE smart_home_db TO %I', username);
         EXECUTE format('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO %I', username);
         EXECUTE format('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO %I', username);
+
+        -- Даем права на будущие таблицы и последовательности
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO %I', username);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO %I', username);
     ELSIF role = 'user' THEN
         -- Обычный пользователь получает доступ только на чтение
         EXECUTE format('GRANT CONNECT ON DATABASE smart_home_db TO %I', username);
         EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', username);
+
+        -- Даем права на чтение будущих таблиц
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO %I', username);
     END IF;
 END;
 $$;

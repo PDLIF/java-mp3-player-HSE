@@ -22,6 +22,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION get_users()
+RETURNS TABLE (username TEXT) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT rolname::TEXT AS username
+    FROM pg_roles
+    WHERE rolcanlogin = TRUE; -- Возвращаем только роли, которые могут логиниться
+END;
+$$ LANGUAGE plpgsql;
+
 -- Хранимая процедура для создания таблицы в текущей БД
 CREATE OR REPLACE PROCEDURE create_devices_table()
 LANGUAGE plpgsql AS $$

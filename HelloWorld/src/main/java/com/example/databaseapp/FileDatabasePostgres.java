@@ -10,11 +10,12 @@ import java.util.List;
 public class FileDatabasePostgres {
     private Connection conn;
     static String sql_path = "scripts.sql";
+    String url = "jdbc:postgresql://127.0.0.1:5432/";
+    String userName = "postgres", userPassd = "123";
 
     public FileDatabasePostgres() throws ClassNotFoundException, SQLException, IOException {
         String dbName = "smart_home_db";
-        String url = "jdbc:postgresql://127.0.0.1:5432/";
-        String userName = "postgres", userPassd = "123";
+
 
         Class.forName("org.postgresql.Driver");
 
@@ -32,11 +33,11 @@ public class FileDatabasePostgres {
         }
 
         // Подключаемся к созданной базе
-        this.conn = DriverManager.getConnection(url + dbName, userName, userPassd);
-        System.out.println("Соединение установлено с бд: "+dbName);
+        //this.conn = DriverManager.getConnection(url + dbName, userName, userPassd);
+        //System.out.println("Соединение установлено с бд: "+dbName);
 
         // Загружаем SQL-скрипты при первом запуске
-        executeSQLFile(sql_path);
+        //executeSQLFile(sql_path);
     }
 
     public void executeSQLFile(String filePath) throws IOException, SQLException {
@@ -62,11 +63,8 @@ public class FileDatabasePostgres {
     }
 
     public void createDatabase(String dbName) throws SQLException, IOException {
-        String adminUrl = "jdbc:postgresql://127.0.0.1:5432/postgres"; // Подключаемся к дефолтной БД
-        String user = "postgres", password = "123";
-
         // 1. Создаём новую БД
-        try (Connection adminConn = DriverManager.getConnection(adminUrl, user, password);
+        try (Connection adminConn = DriverManager.getConnection(url+"postgres", userName, userPassd);
              Statement stmt = adminConn.createStatement()) {
             stmt.executeUpdate("CREATE DATABASE " + dbName);
         }
@@ -75,20 +73,17 @@ public class FileDatabasePostgres {
 
     }
 
-    // Очистка таблицы устройств
-    public void clearDevicesTable() throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL clear_devices_table()")) {
-            stmt.execute();
-        }
-    }
+    public void DeleteDatabase(String dbName) throws SQLException, IOException {
+        // Создаем новое соединение с базой данных "postgres" (или другой системной БД)
+        try (Connection adminConn = DriverManager.getConnection(url+"postgres", userName, userPassd)) {
+            // Формируем SQL-запрос для удаления базы данных
+            String sql = "DROP DATABASE " + dbName;
 
-    // Добавление нового устройства
-    public void addDevice(String name, String type, boolean status) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL insert_device(?, ?, ?)")) {
-            stmt.setString(1, name);
-            stmt.setString(2, type);
-            stmt.setBoolean(3, status);
-            stmt.execute();
+            try (Statement stmt = adminConn.createStatement()) {
+                stmt.execute(sql); // Выполняем команду DROP DATABASE
+            }
+        } catch (SQLException e) {
+            throw new SQLException("Ошибка при удалении БД: " + e.getMessage(), e);
         }
     }
     // Добавление нового устройства
@@ -126,23 +121,6 @@ public class FileDatabasePostgres {
         return devices;
     }
 
-    // Обновление статуса устройства
-    public void updateDeviceStatus(int deviceId, boolean newStatus) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL update_device_status(?, ?)")) {
-            stmt.setInt(1, deviceId);
-            stmt.setBoolean(2, newStatus);
-            stmt.execute();
-        }
-    }
-
-    // Удаление устройства по названию
-    public void deleteDeviceByName(String name) throws SQLException {
-        try (CallableStatement stmt = conn.prepareCall("CALL delete_device_by_name(?)")) {
-            stmt.setString(1, name);
-            stmt.execute();
-        }
-    }
-
     // Создание пользователя
     public void createUser(String username, String password, String role) throws SQLException {
         try (CallableStatement stmt = conn.prepareCall("CALL create_user(?, ?, ?)")) {
@@ -152,7 +130,22 @@ public class FileDatabasePostgres {
             stmt.execute();
         }
     }
+    public List<String> getUsers() throws SQLException {
+        List<String> users = new ArrayList<>();
 
+        // Выполняем SQL-запрос для получения списка пользователей
+        try (CallableStatement stmt = conn.prepareCall("{ call get_users() }");
+             ResultSet rs = stmt.executeQuery()) {
+
+            // Читаем результаты
+            while (rs.next()) {
+                String username = rs.getString("username");
+                users.add(username);
+            }
+        }
+
+        return users;
+    }
     // Удаление устройства по ID
     public void deleteDevice(int id) throws SQLException {
         try (CallableStatement stmt = conn.prepareCall("CALL delete_device_by_id(?)")) {
@@ -207,7 +200,6 @@ public class FileDatabasePostgres {
         }
 
         conn = DriverManager.getConnection(url, user, password);
-        System.out.println("Сейчас выполнится скрипт");
 
         executeSQLFile(conn,sql_path);
         try (CallableStatement stmt = conn.prepareCall("CALL create_devices_table()")) {
